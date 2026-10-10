@@ -1,0 +1,39 @@
+[package]
+name = "flowscope"
+version = "0.2.0"
+edition = "2021"
+description = "Reconstructs TCP flows from a .pcap/.pcapng file and flags reliability anomalies (retransmit storms, dropped SYNs, out-of-order bursts, resets, duplicate ACKs, zero-window stalls), optionally cross-checked against a burstgen events log."
+authors = ["Sayak"]
+license = "MIT"
+
+[[bin]]
+name = "flowscope"
+path = "src/main.rs"
+
+[dependencies]
+# Parses .pcap files directly from disk. Deliberately NOT using the `pcap`
+# crate (a libpcap FFI binding), because that requires libpcap's system
+# headers to be installed at build time — a dependency burstgen has none
+# of, and one this tool doesn't need either, since it only ever reads a
+# capture file that was already written by tcpdump/wireshark, it never
+# captures live traffic itself. `pcap-file` parses the on-disk .pcap /
+# .pcapng format directly with no system library required.
+pcap-file = "2"
+
+# Parses the actual Ethernet/IP/TCP/UDP headers out of each packet's raw
+# bytes. Chosen over hand-rolled byte offsets for the same reason burstgen
+# uses socket2 instead of raw byte-twiddling: header layouts have enough
+# edge cases (IP options, VLAN tags, IPv6) that a maintained parser is
+# worth the dependency.
+etherparse = "0.15"
+
+clap = { version = "~4.4", features = ["derive"] }
+anyhow = "1"
+chrono = { version = "0.4", features = ["serde"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+csv = "1.3"
+
+[profile.release]
+lto = true
+codegen-units = 1
